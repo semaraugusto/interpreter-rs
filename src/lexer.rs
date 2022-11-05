@@ -10,7 +10,7 @@ pub struct Lexer {
 
 impl Lexer {
     // add code here
-    fn new(input: String) -> Self {
+    pub fn new(input: String) -> Self {
         let mut lexer = Self {
             input: input.chars().collect(),
             position: 0,
@@ -67,7 +67,7 @@ impl Lexer {
         }
     }
 
-    fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
         // println!("next_token called");
         // let _zero: char = char::default();
         self.skip_whitespace();
@@ -75,7 +75,6 @@ impl Lexer {
         let token: Token = match self.ch {
             // Operators
             '=' => {
-                println!("self.ch: -{}-", self.ch);
                 if self.peek_char() == '=' {
                     self.read_char();
                     Token::new(String::from("=="))
@@ -83,16 +82,9 @@ impl Lexer {
                     Token::new(String::from(self.ch))
                 }
             }
-            '+' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '-' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
+            '+' => Token::new(String::from(self.ch)),
+            '-' => Token::new(String::from(self.ch)),
             '!' => {
-                println!("self.ch: -{}-", self.ch);
                 if self.peek_char() == '=' {
                     self.read_char();
                     Token::new(String::from("!="))
@@ -100,50 +92,17 @@ impl Lexer {
                     Token::new(String::from(self.ch))
                 }
             }
-            '*' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '/' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '<' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '>' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            ',' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '(' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            ')' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '{' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '}' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            ';' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
-            '\x00' => {
-                println!("self.ch: -{}-", self.ch);
-                Token::new(String::from(self.ch))
-            }
+            '*' => Token::new(String::from(self.ch)),
+            '/' => Token::new(String::from(self.ch)),
+            '<' => Token::new(String::from(self.ch)),
+            '>' => Token::new(String::from(self.ch)),
+            ',' => Token::new(String::from(self.ch)),
+            '(' => Token::new(String::from(self.ch)),
+            ')' => Token::new(String::from(self.ch)),
+            '{' => Token::new(String::from(self.ch)),
+            '}' => Token::new(String::from(self.ch)),
+            ';' => Token::new(String::from(self.ch)),
+            '\x00' => Token::new(String::from(self.ch)),
             // Delimiters
             // Keywords
             token => {
@@ -155,7 +114,6 @@ impl Lexer {
                 } else if token.is_digit(10) {
                     let literal: String = self.read_number();
                     println!("LITERAL: {}", literal);
-                    println!("ch: {}", self.ch);
                     self.reverse_read();
                     Token::new(literal)
                 } else {
