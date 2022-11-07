@@ -1,5 +1,5 @@
 use crate::lexer;
-use crate::token::TokenType;
+use crate::token::Token;
 use rustyline::Editor;
 
 pub fn start_repl() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,7 +11,7 @@ pub fn start_repl() -> Result<(), Box<dyn std::error::Error>> {
             let mut lexer = lexer::Lexer::new(line);
             loop {
                 let token = lexer.next_token();
-                if token.token_type == TokenType::Eof {
+                if token == Token::Eof {
                     break;
                 }
                 println!("Token: {:?}", token);
