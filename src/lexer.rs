@@ -1,4 +1,5 @@
 use crate::token::Token;
+use crate::token::TokenType;
 
 pub struct Lexer {
     pub input: Vec<char>,
@@ -83,38 +84,37 @@ impl Lexer {
         self.skip_whitespace();
         println!("CH: {:?}", self.ch);
         let token: Token = match self.ch {
-            None => Token::Eof,
+            None => Token::new(TokenType::Eof, "".to_string()),
             Some(value) => match value {
                 // Operators
                 '=' => {
                     if self.peek_char() == '=' {
                         self.read_char();
-                        Token::Eq
+                        Token::new(TokenType::Eq, "==".to_string())
                     } else {
-                        Token::Assign
+                        Token::new(TokenType::Assign, value.to_string())
                     }
                 }
-                '+' => Token::Plus,
-                '-' => Token::Minus,
+                '+' => Token::new(TokenType::Plus, value.to_string()),
+                '-' => Token::new(TokenType::Minus, value.to_string()),
                 '!' => {
                     if self.peek_char() == '=' {
                         self.read_char();
-                        Token::NotEq
+                        Token::new(TokenType::NotEq, "!=".to_string())
                     } else {
-                        Token::Bang
+                        Token::new(TokenType::Bang, value.to_string())
                     }
                 }
-                '*' => Token::Asterisk,
-                '/' => Token::Slash,
-                '<' => Token::LT,
-                '>' => Token::GT,
-                ',' => Token::Comma,
-                ';' => Token::Semicolon,
-                '(' => Token::LParen,
-                ')' => Token::RParen,
-                '{' => Token::LBrace,
-                '}' => Token::RBrace,
-                '\x00' => Token::Eof,
+                '*' => Token::new(TokenType::Asterisk, value.to_string()),
+                '/' => Token::new(TokenType::Slash, value.to_string()),
+                '<' => Token::new(TokenType::LT, value.to_string()),
+                '>' => Token::new(TokenType::GT, value.to_string()),
+                ',' => Token::new(TokenType::Comma, value.to_string()),
+                ';' => Token::new(TokenType::Semicolon, value.to_string()),
+                '(' => Token::new(TokenType::LParen, value.to_string()),
+                ')' => Token::new(TokenType::RParen, value.to_string()),
+                '{' => Token::new(TokenType::LBrace, value.to_string()),
+                '}' => Token::new(TokenType::RBrace, value.to_string()),
                 // Delimiters
                 // Keywords
                 token => {
@@ -123,22 +123,22 @@ impl Lexer {
                         println!("LITERAL: {}", literal);
                         self.reverse_read();
                         match literal.as_str() {
-                            "FN" => Token::Function,
-                            "LET" => Token::Let,
-                            "TRUE" => Token::True,
-                            "FALSE" => Token::False,
-                            "IF" => Token::If,
-                            "ELSE" => Token::Else,
-                            "RETURN" => Token::Return,
-                            _ => Token::Ident(literal),
+                            "FN" => Token::new(TokenType::Function, literal),
+                            "LET" => Token::new(TokenType::Let, literal),
+                            "TRUE" => Token::new(TokenType::True, literal),
+                            "FALSE" => Token::new(TokenType::False, literal),
+                            "IF" => Token::new(TokenType::If, literal),
+                            "ELSE" => Token::new(TokenType::Else, literal),
+                            "RETURN" => Token::new(TokenType::Return, literal),
+                            _ => Token::new(TokenType::Ident, literal),
                         }
                     } else if token.is_digit(10) {
                         let literal: usize = self.read_number();
                         println!("LITERAL: {}", literal);
                         self.reverse_read();
-                        Token::Int(literal)
+                        Token::new(TokenType::Int, literal.to_string())
                     } else {
-                        Token::Illegal
+                        Token::new(TokenType::Illegal, token.to_string())
                     }
                 }
             },
@@ -151,26 +151,27 @@ impl Lexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::token::Token;
+    use crate::token::TokenType;
     #[test]
     fn test_symbols() {
         let input = String::from("=+(){},;");
         let expected = [
-            (Token::Assign, "="),
-            (Token::Plus, "+"),
-            (Token::LParen, "("),
-            (Token::RParen, ")"),
-            (Token::LBrace, "{"),
-            (Token::RBrace, "}"),
-            (Token::Comma, ","),
-            (Token::Semicolon, ";"),
-            (Token::Eof, ""),
+            (TokenType::Assign, "="),
+            (TokenType::Plus, "+"),
+            (TokenType::LParen, "("),
+            (TokenType::RParen, ")"),
+            (TokenType::LBrace, "{"),
+            (TokenType::RBrace, "}"),
+            (TokenType::Comma, ","),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Eof, ""),
         ];
         let mut lexer = Lexer::new(input);
         for test in expected.iter() {
             let tok = lexer.next_token();
             // println!("{:?}", tok);
-            assert_eq!(tok, test.0);
+            assert_eq!(tok.token_type, test.0);
+            assert_eq!(tok.literal, test.1);
         }
     }
 
@@ -188,49 +189,50 @@ mod tests {
             ",
         );
         let expected = [
-            (Token::Let, "LET"),
-            (Token::Ident("FIVE".to_string()), "FIVE"),
-            (Token::Assign, "="),
-            (Token::Int(5), "5"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "LET"),
-            (Token::Ident("TEN".to_string()), "TEN"),
-            (Token::Assign, "="),
-            (Token::Int(10), "10"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "LET"),
-            (Token::Ident("ADD".to_string()), "ADD"),
-            (Token::Assign, "="),
-            (Token::Function, "FN"),
-            (Token::LParen, "("),
-            (Token::Ident("X".to_string()), "X"),
-            (Token::Comma, ","),
-            (Token::Ident("Y".to_string()), "Y"),
-            (Token::RParen, ")"),
-            (Token::LBrace, "{"),
-            (Token::Ident("X".to_string()), "X"),
-            (Token::Plus, "+"),
-            (Token::Ident("Y".to_string()), "Y"),
-            (Token::Semicolon, ";"),
-            (Token::RBrace, "}"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "LET"),
-            (Token::Ident("RESULT".to_string()), "RESULT"),
-            (Token::Assign, "="),
-            (Token::Ident("ADD".to_string()), "ADD"),
-            (Token::LParen, "("),
-            (Token::Ident("FIVE".to_string()), "FIVE"),
-            (Token::Comma, ","),
-            (Token::Ident("TEN".to_string()), "TEN"),
-            (Token::RParen, ")"),
-            (Token::Semicolon, ";"),
-            (Token::Eof, ""),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "FIVE"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "TEN"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "10"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "ADD"),
+            (TokenType::Assign, "="),
+            (TokenType::Function, "FN"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "X"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "Y"),
+            (TokenType::RParen, ")"),
+            (TokenType::LBrace, "{"),
+            (TokenType::Ident, "X"),
+            (TokenType::Plus, "+"),
+            (TokenType::Ident, "Y"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::RBrace, "}"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "RESULT"),
+            (TokenType::Assign, "="),
+            (TokenType::Ident, "ADD"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "FIVE"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "TEN"),
+            (TokenType::RParen, ")"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Eof, ""),
         ];
         let mut lexer = Lexer::new(input);
         for test in expected.iter() {
             let tok = lexer.next_token();
             println!("actual {:?} expected: {:?}", tok, test);
-            assert_eq!(tok, test.0);
+            assert_eq!(tok.token_type, test.0);
+            assert_eq!(tok.literal, test.1);
         }
     }
 
@@ -250,61 +252,62 @@ mod tests {
     ",
         );
         let expected = [
-            (Token::Let, "LET"),
-            (Token::Ident("FIVE".to_string()), "FIVE"),
-            (Token::Assign, "="),
-            (Token::Int(5), "5"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "LET"),
-            (Token::Ident("TEN".to_string()), "TEN"),
-            (Token::Assign, "="),
-            (Token::Int(10), "10"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "LET"),
-            (Token::Ident("ADD".to_string()), "ADD"),
-            (Token::Assign, "="),
-            (Token::Function, "FN"),
-            (Token::LParen, "("),
-            (Token::Ident("X".to_string()), "X"),
-            (Token::Comma, ","),
-            (Token::Ident("Y".to_string()), "Y"),
-            (Token::RParen, ")"),
-            (Token::LBrace, "{"),
-            (Token::Ident("X".to_string()), "X"),
-            (Token::Plus, "+"),
-            (Token::Ident("Y".to_string()), "Y"),
-            (Token::Semicolon, ";"),
-            (Token::RBrace, "}"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "LET"),
-            (Token::Ident("RESULT".to_string()), "RESULT"),
-            (Token::Assign, "="),
-            (Token::Ident("ADD".to_string()), "ADD"),
-            (Token::LParen, "("),
-            (Token::Ident("FIVE".to_string()), "FIVE"),
-            (Token::Comma, ","),
-            (Token::Ident("TEN".to_string()), "TEN"),
-            (Token::RParen, ")"),
-            (Token::Semicolon, ";"),
-            (Token::Bang, "!"),
-            (Token::Minus, "-"),
-            (Token::Slash, "/"),
-            (Token::Asterisk, "*"),
-            (Token::Int(5), "5"),
-            (Token::Semicolon, ";"),
-            (Token::Int(5), "5"),
-            (Token::LT, "<"),
-            (Token::Int(10), "10"),
-            (Token::GT, ">"),
-            (Token::Int(5), "5"),
-            (Token::Semicolon, ";"),
-            (Token::Eof, "\0"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "FIVE"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "TEN"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "10"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "ADD"),
+            (TokenType::Assign, "="),
+            (TokenType::Function, "FN"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "X"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "Y"),
+            (TokenType::RParen, ")"),
+            (TokenType::LBrace, "{"),
+            (TokenType::Ident, "X"),
+            (TokenType::Plus, "+"),
+            (TokenType::Ident, "Y"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::RBrace, "}"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "RESULT"),
+            (TokenType::Assign, "="),
+            (TokenType::Ident, "ADD"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "FIVE"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "TEN"),
+            (TokenType::RParen, ")"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Bang, "!"),
+            (TokenType::Minus, "-"),
+            (TokenType::Slash, "/"),
+            (TokenType::Asterisk, "*"),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Int, "5"),
+            (TokenType::LT, "<"),
+            (TokenType::Int, "10"),
+            (TokenType::GT, ">"),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Eof, ""),
         ];
         let mut lexer = Lexer::new(input);
         for test in expected.iter() {
             let tok = lexer.next_token();
             println!("actual {:?} expected: {:?}", tok, test);
-            assert_eq!(tok, test.0);
+            assert_eq!(tok.token_type, test.0);
+            assert_eq!(tok.literal, test.1);
         }
     }
     #[test]
@@ -331,86 +334,87 @@ mod tests {
     10 != 9;",
         );
         let expected = [
-            (Token::Let, "let"),
-            (Token::Ident("FIVE".to_string()), "five"),
-            (Token::Assign, "="),
-            (Token::Int(5), "5"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "let"),
-            (Token::Ident("TEN".to_string()), "ten"),
-            (Token::Assign, "="),
-            (Token::Int(10), "10"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "let"),
-            (Token::Ident("ADD".to_string()), "add"),
-            (Token::Assign, "="),
-            (Token::Function, "fn"),
-            (Token::LParen, "("),
-            (Token::Ident("X".to_string()), "x"),
-            (Token::Comma, ","),
-            (Token::Ident("Y".to_string()), "y"),
-            (Token::RParen, ")"),
-            (Token::LBrace, "{"),
-            (Token::Ident("X".to_string()), "x"),
-            (Token::Plus, "+"),
-            (Token::Ident("Y".to_string()), "y"),
-            (Token::Semicolon, ";"),
-            (Token::RBrace, "}"),
-            (Token::Semicolon, ";"),
-            (Token::Let, "LET"),
-            (Token::Ident("RESULT".to_string()), "result"),
-            (Token::Assign, "="),
-            (Token::Ident("ADD".to_string()), "add"),
-            (Token::LParen, "("),
-            (Token::Ident("FIVE".to_string()), "five"),
-            (Token::Comma, ","),
-            (Token::Ident("TEN".to_string()), "ten"),
-            (Token::RParen, ")"),
-            (Token::Semicolon, ";"),
-            (Token::Bang, "!"),
-            (Token::Minus, "-"),
-            (Token::Slash, "/"),
-            (Token::Asterisk, "*"),
-            (Token::Int(5), "5"),
-            (Token::Semicolon, ";"),
-            (Token::Int(5), "5"),
-            (Token::LT, "<"),
-            (Token::Int(10), "10"),
-            (Token::GT, ">"),
-            (Token::Int(5), "5"),
-            (Token::Semicolon, ";"),
-            (Token::If, "if"),
-            (Token::LParen, "("),
-            (Token::Int(5), "5"),
-            (Token::LT, "<"),
-            (Token::Int(10), "10"),
-            (Token::RParen, ")"),
-            (Token::LBrace, "{"),
-            (Token::Return, "RETURN"),
-            (Token::True, "TRUE"),
-            (Token::Semicolon, ";"),
-            (Token::RBrace, "}"),
-            (Token::Else, "ELSE"),
-            (Token::LBrace, "{"),
-            (Token::Return, "RETURN"),
-            (Token::False, "FALSE"),
-            (Token::Semicolon, ";"),
-            (Token::RBrace, "}"),
-            (Token::Int(10), "10"),
-            (Token::Eq, "=="),
-            (Token::Int(10), "10"),
-            (Token::Semicolon, ";"),
-            (Token::Int(10), "10"),
-            (Token::NotEq, "!="),
-            (Token::Int(9), "9"),
-            (Token::Semicolon, ";"),
-            (Token::Eof, ""),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "FIVE"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "TEN"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "10"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "ADD"),
+            (TokenType::Assign, "="),
+            (TokenType::Function, "FN"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "X"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "Y"),
+            (TokenType::RParen, ")"),
+            (TokenType::LBrace, "{"),
+            (TokenType::Ident, "X"),
+            (TokenType::Plus, "+"),
+            (TokenType::Ident, "Y"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::RBrace, "}"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "LET"),
+            (TokenType::Ident, "RESULT"),
+            (TokenType::Assign, "="),
+            (TokenType::Ident, "ADD"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "FIVE"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "TEN"),
+            (TokenType::RParen, ")"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Bang, "!"),
+            (TokenType::Minus, "-"),
+            (TokenType::Slash, "/"),
+            (TokenType::Asterisk, "*"),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Int, "5"),
+            (TokenType::LT, "<"),
+            (TokenType::Int, "10"),
+            (TokenType::GT, ">"),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::If, "IF"),
+            (TokenType::LParen, "("),
+            (TokenType::Int, "5"),
+            (TokenType::LT, "<"),
+            (TokenType::Int, "10"),
+            (TokenType::RParen, ")"),
+            (TokenType::LBrace, "{"),
+            (TokenType::Return, "RETURN"),
+            (TokenType::True, "TRUE"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::RBrace, "}"),
+            (TokenType::Else, "ELSE"),
+            (TokenType::LBrace, "{"),
+            (TokenType::Return, "RETURN"),
+            (TokenType::False, "FALSE"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::RBrace, "}"),
+            (TokenType::Int, "10"),
+            (TokenType::Eq, "=="),
+            (TokenType::Int, "10"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Int, "10"),
+            (TokenType::NotEq, "!="),
+            (TokenType::Int, "9"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Eof, ""),
         ];
         let mut lexer = Lexer::new(input);
         for test in expected.iter() {
             let tok = lexer.next_token();
             println!("actual {:?} expected: {:?}", tok, test);
-            assert_eq!(tok, test.0);
+            assert_eq!(tok.token_type, test.0);
+            assert_eq!(tok.literal, test.1);
         }
     }
 }

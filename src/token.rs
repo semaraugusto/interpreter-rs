@@ -1,13 +1,11 @@
-// pub type Token = String;
+#[derive(Clone, Debug, PartialEq)]
+pub struct Token {
+    pub token_type: TokenType,
+    pub literal: String,
+}
 
-// #[derive(Debug, PartialEq)]
-// pub struct Token {
-//     pub token_type: Token,
-//     pub literal: String,
-// }
-//
-#[derive(Debug, PartialEq)]
-pub enum Token {
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum TokenType {
     Illegal,
     Eof,
     Comma,
@@ -30,8 +28,8 @@ pub enum Token {
     NotEq,
 
     // Keywords
-    Ident(String),
-    Int(usize),
+    Ident,
+    Int,
     Function,
     Let,
     True,
@@ -42,6 +40,12 @@ pub enum Token {
 }
 
 impl Token {
+    pub fn new(token_type: TokenType, literal: String) -> Self {
+        Self {
+            token_type,
+            literal,
+        }
+    }
     pub fn is_number(literal: &str) -> bool {
         let numb: i64 = literal.parse().unwrap_or(-1);
         if numb == -1 {
@@ -56,5 +60,8 @@ impl Token {
             }
         }
         true
+    }
+    pub fn is_type(self, token_type: TokenType) -> bool {
+        self.token_type == token_type
     }
 }
