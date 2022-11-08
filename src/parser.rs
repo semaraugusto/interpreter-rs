@@ -1,11 +1,19 @@
 use crate::ast::*;
+use crate::errors::*;
 use crate::lexer::*;
 use crate::token::*;
+use std::error::Error;
+
+// enum ParserStatus {
+//     Success,
+//     Failure,
+// }
 
 struct Parser {
     lexer: Lexer,
     cur_token: Token,
     peek_token: Option<Token>,
+    errors: Vec<String>,
 }
 
 impl Parser {
@@ -16,6 +24,7 @@ impl Parser {
             lexer,
             cur_token,
             peek_token: Some(peek_token),
+            errors: vec![],
         }
     }
     fn next_token(&mut self) {
@@ -40,38 +49,100 @@ impl Parser {
         }
         program
     }
-    fn parse_statement(&mut self) -> Option<Box<impl Statement>> {
+    fn parse_statement(&mut self) -> Option<Box<dyn Statement>> {
         match self.cur_token.token_type {
-            TokenType::Let => self.parse_let_statement(),
+            TokenType::Let => {
+                let stmt = match self.parse_let_statement() {
+                    Some(stmt) => stmt,
+                    None => return None,
+                };
+                Some(Box::new(stmt))
+            }
+            TokenType::Return => {
+                let stmt = match self.parse_return_statement() {
+                    Some(stmt) => stmt,
+                    None => return None,
+                };
+
+                Some(Box::new(stmt))
+            }
             _ => None,
         }
     }
+    fn parse_return_statement(&mut self) -> Option<ReturnStatement> {
+        let return_token = self.cur_token.clone();
 
-    fn parse_let_statement(&mut self) -> Option<Box<LetStatement>> {
-        let let_token = self.cur_token.clone();
-        if !self.expect_peek(TokenType::Ident) {
-            return None;
-        }
-        let ident = Identifier::new(self.cur_token.clone());
-
-        if !self.expect_peek(TokenType::Assign) {
-            return None;
+        self.next_token();
+        if self.cur_token_is(TokenType::Int) {
+            let expr = self.parse_integer_literal();
+            return Some(ReturnStatement {
+                token: return_token,
+                expr: Some(expr),
+            });
         }
         while !self.cur_token_is(TokenType::Semicolon) {
             self.next_token();
         }
+        Some(ReturnStatement {
+            token: return_token,
+            expr: None,
+        })
+    }
 
-        Some(Box::new(LetStatement {
+    fn parse_let_statement(&mut self) -> Option<LetStatement> {
+        let let_token = self.cur_token.clone();
+        if let Err(err) = self.expect_peek(TokenType::Ident) {
+            self.errors.push(err.to_string());
+            return None;
+        }
+        let ident = Identifier::new(self.cur_token.clone());
+
+        if let Err(err) = self.expect_peek(TokenType::Assign) {
+            self.errors.push(err.to_string());
+            return None;
+        }
+
+        while !self.cur_token_is(TokenType::Semicolon) {
+            self.next_token();
+        }
+
+        Some(LetStatement {
             token: let_token,
             name: ident,
-        }))
+            value: None,
+        })
     }
-    fn expect_peek(&mut self, token_type: TokenType) -> bool {
+    fn parse_expression(&mut self) -> Box<dyn Expression> {
+        if self.cur_token_is(TokenType::Int) {
+            if self.peek_token_is(TokenType::Plus) {
+                return self.parse_operator_expression();
+            } else if self.peek_token_is(TokenType::Semicolon) {
+                return self.parse_integer_literal();
+            } else {
+                unimplemented!("Return errors")
+            }
+        } else if self.cur_token_is(TokenType::LParen) {
+            unimplemented!("Parse group expression")
+        } else {
+            unimplemented!("Return errors")
+        }
+    }
+    fn parse_operator_expression(&mut self) -> Box<dyn Expression> {
+        unimplemented!()
+    }
+    fn parse_integer_literal(&mut self) -> Box<dyn Expression> {
+        Box::new(IntegerLiteral::new(self.cur_token.clone()))
+    }
+
+    fn expect_peek(&mut self, token_type: TokenType) -> Result<bool, Box<dyn Error>> {
         if self.peek_token_is(token_type) {
             self.next_token();
-            return true;
+            return Ok(true);
         }
-        false
+        let actual = self.peek_token.clone().expect("Could not peek next token");
+        let err = WrongTokenError::new(actual, token_type);
+        Err(Box::new(err))
+        // false
     }
     fn peek_token_is(&self, token_type: TokenType) -> bool {
         match &self.peek_token {
@@ -96,23 +167,80 @@ let y = 10;
 let foobar = 838383;
 ";
         println!("input: {}", input);
-        let mut lexer = Lexer::new(input.to_string());
+        let lexer = Lexer::new(input.to_string());
         let mut parser = Parser::new(lexer);
         println!("before");
         let program = parser.parse_program();
         // println!("input: {:?}", program.statements);
-        let expected = ["X", "Y", "FOOBAR"];
+        let expected = [
+            "LET X = NOT_IMPLEMENTED",
+            "LET Y = NOT_IMPLEMENTED",
+            "LET FOOBAR = NOT_IMPLEMENTED",
+        ];
         println!("before");
 
         for (i, stmt) in program.statements.iter().enumerate() {
             println!("i: {}", i);
-            let let_stmt: _ = stmt;
-            println!("let_stmt: {:?}", let_stmt.token_literal());
-            println!("let_stmt: {:?}", let_stmt.statement_node());
-            let let_stmt = stmt.statement_node();
-            assert_eq!(let_stmt[0], "LET");
-            assert_eq!(let_stmt[1], expected[i]);
-            // assert_eq!(let_stmt.name.value, expected[i]);
+            println!("let_stmt: {:?}", stmt.token_literal());
+            assert_eq!(stmt.token_literal(), "LET");
+            assert_eq!(stmt.statement_node(), expected[i]);
         }
+        // println!("let_stmt: {:?}", let_stmt.statement_node());
+        // let let_stmt = stmt.statement_node();
+        // assert_eq!(stmt[1], expected[i]);
+        // assert_eq!(let_stmt.name.value, expected[i]);
+    }
+
+    #[test]
+    fn test_let_statement_error() {
+        let input = "let x 5;
+let = 10;
+let 838383;";
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let _ = parser.parse_program();
+        // println!("input: {:?}", program.statements);
+        let mut errors_iter = parser.errors.iter();
+        assert_eq!(
+            *errors_iter.next().unwrap(),
+            "Expected next token to be Assign, got 'Token(Int, 5)' instead".to_string()
+        );
+        assert_eq!(
+            *errors_iter.next().unwrap(),
+            "Expected next token to be Ident, got 'Token(Assign, =)' instead".to_string()
+        );
+        assert_eq!(
+            *errors_iter.next().unwrap(),
+            "Expected next token to be Ident, got 'Token(Int, 838383)' instead".to_string()
+        );
+    }
+
+    #[test]
+    fn test_return_statement() {
+        println!("test_return_statement");
+        let input = "return 5;
+return 10;
+return 993322;
+";
+        println!("input: {}", input);
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        // println!("input: {:?}", program.statements);
+        if program.statements.len() != 3 {
+            panic!("Invalid number of statements");
+        }
+        let expected = ["RETURN 5", "RETURN 10", "RETURN 993322"];
+
+        for (i, stmt) in program.statements.iter().enumerate() {
+            println!("i: {}", i);
+            println!("token: {:?}", stmt.token_literal());
+            println!("stmt: {:?}", stmt.statement_node());
+            assert_eq!(stmt.statement_node(), expected[i]);
+        }
+        // println!("let_stmt: {:?}", let_stmt.statement_node());
+        // let let_stmt = stmt.statement_node();
+        // assert_eq!(stmt[1], expected[i]);
+        // assert_eq!(stmt.name.value, expected[i]);
     }
 }

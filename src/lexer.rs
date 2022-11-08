@@ -40,7 +40,6 @@ impl Lexer {
     }
     fn read_number(&mut self) -> usize {
         let position = self.position;
-        // println!("read_number {}", self.ch);
         while let Some(chr) = self.ch {
             if !chr.is_digit(10) {
                 break;
@@ -54,7 +53,6 @@ impl Lexer {
     }
 
     fn read_char(&mut self) {
-        // println!("CH: {}", self.ch);
         if self.read_position >= self.input.len() {
             self.ch = None;
         } else {
@@ -64,7 +62,6 @@ impl Lexer {
         self.read_position += 1;
     }
     fn reverse_read(&mut self) {
-        // println!("CH: {}", self.ch);
         self.position -= 1;
         self.read_position -= 1;
         self.ch = Some(self.input[self.read_position]);
@@ -79,10 +76,7 @@ impl Lexer {
     }
 
     pub fn next_token(&mut self) -> Token {
-        // println!("next_token called");
-        // let _zero: char = char::default();
         self.skip_whitespace();
-        println!("CH: {:?}", self.ch);
         let token: Token = match self.ch {
             None => Token::new(TokenType::Eof, "".to_string()),
             Some(value) => match value {

@@ -1,3 +1,4 @@
+use std::fmt;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
@@ -46,6 +47,27 @@ impl Token {
             literal,
         }
     }
+    pub fn from_symbol(literal: String) -> Self {
+        match literal.as_str() {
+            "=" => Token::new(TokenType::Assign, literal),
+            "==" => Token::new(TokenType::Eq, literal),
+            "+" => Token::new(TokenType::Plus, literal),
+            "-" => Token::new(TokenType::Minus, literal),
+            "!" => Token::new(TokenType::Bang, literal),
+            "!=" => Token::new(TokenType::NotEq, literal),
+            "*" => Token::new(TokenType::Asterisk, literal),
+            "/" => Token::new(TokenType::Slash, literal),
+            "<" => Token::new(TokenType::LT, literal),
+            ">" => Token::new(TokenType::GT, literal),
+            "," => Token::new(TokenType::Comma, literal),
+            ";" => Token::new(TokenType::Semicolon, literal),
+            "(" => Token::new(TokenType::LParen, literal),
+            ")" => Token::new(TokenType::RParen, literal),
+            "{" => Token::new(TokenType::LBrace, literal),
+            "}" => Token::new(TokenType::RBrace, literal),
+            _ => panic!("Invalid token"),
+        }
+    }
     pub fn is_number(literal: &str) -> bool {
         let numb: i64 = literal.parse().unwrap_or(-1);
         if numb == -1 {
@@ -63,5 +85,11 @@ impl Token {
     }
     pub fn is_type(self, token_type: TokenType) -> bool {
         self.token_type == token_type
+    }
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Token({:?}, {})", self.token_type, self.literal)
     }
 }
