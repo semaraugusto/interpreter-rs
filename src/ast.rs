@@ -168,6 +168,6 @@ impl Node for IntegerLiteral {
 
 impl Expression for IntegerLiteral {
     fn expression_node(&self) -> String {
-        todo!()
+        self.to_string()
     }
 }

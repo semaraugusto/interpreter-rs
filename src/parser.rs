@@ -40,6 +40,7 @@ impl Parser {
         let peek_token = lexer.next_token();
         let mut prefix_parse_fns: HashMap<TokenType, PrefixParseFn> = HashMap::new();
         prefix_parse_fns.insert(TokenType::Ident, Parser::parse_identifier);
+        prefix_parse_fns.insert(TokenType::Int, Parser::parse_integer_literal);
         Self {
             lexer,
             cur_token,
@@ -103,6 +104,20 @@ impl Parser {
 
                 Some(Box::new(stmt))
             }
+            TokenType::Int => {
+                if self.peek_token_is(TokenType::Semicolon) {
+                    // Some(self.parse_integer_literal());
+                    // let stmt = match self.parse_integer_expression() {
+                    let stmt = match self.parse_expression_statement() {
+                        Some(stmt) => stmt,
+                        None => return None,
+                    };
+
+                    return Some(Box::new(stmt));
+                    // return Some(stmt);
+                }
+                None
+            }
 
             _ => None,
         }
@@ -111,7 +126,7 @@ impl Parser {
         let return_token = self.cur_token.clone();
 
         self.next_token();
-        let expr = self.tmp_parse();
+        let expr = self.parse_expression(Precedence::Lowest);
 
         while !self.cur_token_is(TokenType::Semicolon) {
             self.next_token();
@@ -163,27 +178,6 @@ impl Parser {
         }
         return Some(ExpressionStatement { token, expr });
     }
-    // fn parse_expression_statement(&mut self) -> Option<ExpressionStatement> {
-    //     // if self.cur_token_is(TokenType::Int) {
-    //     match self.cur_token.token_type {
-    //         TokenType::Int => {
-    //             if self.peek_token_is(TokenType::Plus) | self.peek_token_is(TokenType::Minus) {
-    //                 unimplemented!()
-    //                 // return self.parse_operator_expression();
-    //             } else if self.peek_token_is(TokenType::Semicolon) {
-    //                 let expr = self.parse_integer_literal();
-    //                 return Some(ExpressionStatement {
-    //                     token: self.cur_token.clone(),
-    //                     expr: Some(expr),
-    //                 });
-    //             } else {
-    //                 unimplemented!("Return errors")
-    //             }
-    //         } else if self.cur_token_is(TokenType::LParen) {
-    //             unimplemented!("Parse group expression")
-    //         }
-    //     }
-    // }
     fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<dyn Expression>> {
         let prefix: Option<&PrefixParseFn> = self.prefix_parse_fns.get(&self.cur_token.token_type);
         match prefix {
@@ -201,26 +195,11 @@ impl Parser {
             }
         }
     }
-    fn tmp_parse(&mut self) -> Option<Box<dyn Expression>> {
-        if self.cur_token_is(TokenType::Int) {
-            if self.peek_token_is(TokenType::Plus) | self.peek_token_is(TokenType::Minus) {
-                return self.parse_operator_expression();
-            } else if self.peek_token_is(TokenType::Semicolon) {
-                return Some(self.parse_integer_literal());
-            } else {
-                unimplemented!("Return errors")
-            }
-        } else if self.cur_token_is(TokenType::LParen) {
-            unimplemented!("Parse group expression")
-        } else {
-            unimplemented!("Return errors")
-        }
-    }
     fn parse_operator_expression(&mut self) -> Option<Box<dyn Expression>> {
         unimplemented!()
     }
-    fn parse_integer_literal(&mut self) -> Box<dyn Expression> {
-        Box::new(IntegerLiteral::new(self.cur_token.clone()))
+    fn parse_integer_literal(&mut self) -> Option<Box<dyn Expression>> {
+        Some(Box::new(IntegerLiteral::new(self.cur_token.clone())))
     }
 
     fn expect_peek(&mut self, token_type: TokenType) -> Result<bool, Box<dyn Error>> {
@@ -343,6 +322,30 @@ return 993322;
         }
         let expected = ["Token(Ident, FOOBAR)"];
 
+        for (i, stmt) in program.statements.iter().enumerate() {
+            println!("i: {}", i);
+            println!("token: {:?}", stmt.token_literal());
+            println!("stmt: {:?}", stmt.statement_node());
+            assert_eq!(stmt.statement_node(), expected[i]);
+        }
+    }
+    #[test]
+    fn test_integer_literal_expression() {
+        println!("test_integer_literal_expression");
+        let input = "5;";
+        println!("input: {}", input);
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        // println!("input: {:?}", program.statements);
+        println!("errors: {:?}", parser.errors);
+        assert_eq!(parser.errors.len(), 0);
+        if program.statements.len() != 1 {
+            panic!("Invalid number of statements");
+        }
+        let expected = ["5"];
+
+        println!("START TEST");
         for (i, stmt) in program.statements.iter().enumerate() {
             println!("i: {}", i);
             println!("token: {:?}", stmt.token_literal());
