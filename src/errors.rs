@@ -25,3 +25,21 @@ impl fmt::Display for WrongTokenError {
 }
 
 impl Error for WrongTokenError {}
+
+#[derive(Debug, Clone)]
+pub struct ParseError {
+    pub msg: String,
+}
+impl ParseError {
+    pub fn new(msg: String) -> Self {
+        Self { msg }
+    }
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ParseError: {}", self.msg)
+    }
+}
+
+impl Error for ParseError {}

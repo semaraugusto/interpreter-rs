@@ -70,7 +70,7 @@ pub struct ReturnStatement {
 
 impl Node for ReturnStatement {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
     fn to_string(&self) -> String {
         let value = match &self.expr {
@@ -106,19 +106,19 @@ impl Node for Identifier {
         self.token.literal.clone()
     }
     fn to_string(&self) -> String {
-        self.value.clone()
+        self.token.to_string()
     }
 }
 
 impl Expression for Identifier {
     fn expression_node(&self) -> String {
-        todo!()
+        self.to_string()
     }
 }
 
-struct ExpressionStatement {
-    token: Token,
-    expr: Option<Box<dyn Expression>>,
+pub struct ExpressionStatement {
+    pub token: Token,
+    pub expr: Option<Box<dyn Expression>>,
 }
 
 impl Node for ExpressionStatement {
@@ -130,7 +130,7 @@ impl Node for ExpressionStatement {
             None => "NOT_IMPLEMENTED".to_string(),
             Some(value) => value.expression_node(),
         };
-        format!("{} {}", self.token.literal, value)
+        format!("{}", value)
     }
 }
 

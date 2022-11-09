@@ -5,7 +5,7 @@ pub struct Token {
     pub literal: String,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum TokenType {
     Illegal,
     Eof,
@@ -86,6 +86,9 @@ impl Token {
     pub fn is_type(self, token_type: TokenType) -> bool {
         self.token_type == token_type
     }
+    // pub fn to_string(&self) -> String {
+    //     format!("Token({:?}, {})", self.token_type, self.literal)
+    // }
 }
 
 impl fmt::Display for Token {
