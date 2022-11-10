@@ -41,6 +41,9 @@ impl Parser {
         let mut prefix_parse_fns: HashMap<TokenType, PrefixParseFn> = HashMap::new();
         prefix_parse_fns.insert(TokenType::Ident, Parser::parse_identifier);
         prefix_parse_fns.insert(TokenType::Int, Parser::parse_integer_literal);
+        prefix_parse_fns.insert(TokenType::Bang, Parser::parse_prefix_expression);
+        prefix_parse_fns.insert(TokenType::Minus, Parser::parse_prefix_expression);
+        prefix_parse_fns.insert(TokenType::Plus, Parser::parse_prefix_expression);
         Self {
             lexer,
             cur_token,
@@ -70,11 +73,16 @@ impl Parser {
         let mut program = Program {
             statements: Vec::new(),
         };
+        println!("parse_program");
         while self.cur_token.token_type != TokenType::Eof {
             let statement = self.parse_statement();
             if let Some(stmt) = statement {
+                println!("parsed_statement {}", stmt.to_string());
                 program.statements.push(stmt);
+            } else {
+                println!("Could not parse statement");
             }
+
             self.next_token();
         }
         program
@@ -96,7 +104,7 @@ impl Parser {
 
                 Some(Box::new(stmt))
             }
-            TokenType::Ident => {
+            TokenType::Ident | TokenType::Bang | TokenType::Plus | TokenType::Minus => {
                 let stmt = match self.parse_expression_statement() {
                     Some(stmt) => stmt,
                     None => return None,
@@ -137,16 +145,6 @@ impl Parser {
         })
     }
 
-    fn parse_identifier(&mut self) -> Option<Box<dyn Expression>> {
-        let token = self.cur_token.clone();
-        if let Err(err) = self.expect_peek(TokenType::Semicolon) {
-            self.errors.push(err.to_string());
-            return None;
-        }
-        self.next_token();
-        Some(Box::new(Identifier::new(token)))
-    }
-
     fn parse_let_statement(&mut self) -> Option<LetStatement> {
         let let_token = self.cur_token.clone();
         if let Err(err) = self.expect_peek(TokenType::Ident) {
@@ -173,14 +171,17 @@ impl Parser {
     fn parse_expression_statement(&mut self) -> Option<ExpressionStatement> {
         let token = self.cur_token.clone();
         let expr = self.parse_expression(Precedence::Lowest);
-        if self.peek_token_is(TokenType::Semicolon) {
-            self.next_token();
-        }
+        self.next_token();
         return Some(ExpressionStatement { token, expr });
     }
     fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<dyn Expression>> {
+        println!("parse_expression");
         let prefix: Option<&PrefixParseFn> = self.prefix_parse_fns.get(&self.cur_token.token_type);
         match prefix {
+            Some(prefix) => {
+                let expr = prefix(self);
+                return Some(expr.unwrap());
+            }
             None => {
                 let msg = format!(
                     "Could not find prefix_parse_fn. Available keys are {:?}",
@@ -189,19 +190,27 @@ impl Parser {
                 self.errors.push(msg.clone());
                 panic!("msg: {}", msg.as_str());
             }
-            Some(prefix) => {
-                let expr = prefix(self);
-                Some(expr.unwrap())
-            }
-        }
+        };
     }
-    fn parse_operator_expression(&mut self) -> Option<Box<dyn Expression>> {
-        unimplemented!()
+    fn parse_identifier(&mut self) -> Option<Box<dyn Expression>> {
+        let token = self.cur_token.clone();
+        if let Err(err) = self.expect_peek(TokenType::Semicolon) {
+            self.errors.push(err.to_string());
+            return None;
+        }
+        self.next_token();
+        Some(Box::new(Identifier::new(token)))
     }
     fn parse_integer_literal(&mut self) -> Option<Box<dyn Expression>> {
         Some(Box::new(IntegerLiteral::new(self.cur_token.clone())))
     }
-
+    fn parse_prefix_expression(&mut self) -> Option<Box<dyn Expression>> {
+        println!("parse_prefix_expression");
+        let token = self.cur_token.clone();
+        self.next_token();
+        let expr = self.parse_expression(Precedence::Prefix);
+        Some(Box::new(PrefixExpression::new(token, expr)))
+    }
     fn expect_peek(&mut self, token_type: TokenType) -> Result<bool, Box<dyn Error>> {
         if self.peek_token_is(token_type) {
             self.next_token();
@@ -351,6 +360,32 @@ return 993322;
             println!("token: {:?}", stmt.token_literal());
             println!("stmt: {:?}", stmt.statement_node());
             assert_eq!(stmt.statement_node(), expected[i]);
+        }
+    }
+    #[test]
+    fn test_prefix_expressions() {
+        println!("test_prefix_expressions");
+        let inputs = ["!5;", "-15;", "+15;"];
+        println!("input: {:?}", inputs);
+        for (i, input) in inputs.iter().enumerate() {
+            let lexer = Lexer::new(input.to_string());
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+            // println!("input: {:?}", program.statements);
+            println!("errors: {:?}", parser.errors);
+            assert_eq!(parser.errors.len(), 0);
+            if program.statements.len() != 1 {
+                panic!("Invalid number of statements");
+            }
+            let expected = ["(! 5)", "(- 15)", "(+ 15)"];
+
+            println!("START TEST");
+            for (j, stmt) in program.statements.iter().enumerate() {
+                println!("j: {}", j);
+                println!("token: {:?}", stmt.token_literal());
+                println!("stmt: {:?}", stmt.statement_node());
+                assert_eq!(stmt.statement_node(), expected[i]);
+            }
         }
     }
 }

@@ -171,3 +171,46 @@ impl Expression for IntegerLiteral {
         self.to_string()
     }
 }
+
+pub struct PrefixExpression {
+    pub token: Token,
+    pub operator: String,
+    pub right: Option<Box<dyn Expression>>,
+}
+
+impl PrefixExpression {
+    pub fn new(token: Token, right: Option<Box<dyn Expression>>) -> Self {
+        match token.token_type {
+            TokenType::Bang | TokenType::Minus | TokenType::Plus => (),
+            _ => panic!("Not a prefix operator"),
+        }
+        let operator = token.literal.clone();
+        Self {
+            token,
+            operator,
+            right,
+        }
+    }
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_string(&self) -> String {
+        // format!("{}", self.value)
+        if let Some(right) = &self.right {
+            return format!("({} {})", self.operator, right.to_string());
+        }
+        format!("({} NOT_IMPLEMENTED)", self.operator,)
+    }
+}
+
+impl Expression for PrefixExpression {
+    fn expression_node(&self) -> String {
+        if let Some(right) = &self.right {
+            return format!("({} {})", self.operator, right.to_string());
+        }
+        format!("({} NOT_IMPLEMENTED)", self.operator,)
+    }
+}
