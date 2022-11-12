@@ -1,5 +1,6 @@
 use crate::token::Token;
 use crate::token::TokenType;
+use std::fmt;
 
 pub trait Node {
     fn token_literal(&self) -> String;
@@ -181,7 +182,7 @@ pub struct PrefixExpression {
 impl PrefixExpression {
     pub fn new(token: Token, right: Option<Box<dyn Expression>>) -> Self {
         match token.token_type {
-            TokenType::Bang | TokenType::Minus | TokenType::Plus => (),
+            TokenType::Bang | TokenType::Minus => (),
             _ => panic!("Not a prefix operator"),
         }
         let operator = token.literal.clone();
@@ -202,15 +203,76 @@ impl Node for PrefixExpression {
         if let Some(right) = &self.right {
             return format!("({} {})", self.operator, right.to_string());
         }
-        format!("({} NOT_IMPLEMENTED)", self.operator,)
+        unreachable!()
     }
 }
 
 impl Expression for PrefixExpression {
     fn expression_node(&self) -> String {
-        if let Some(right) = &self.right {
-            return format!("({} {})", self.operator, right.to_string());
+        // if let Some(right) = &self.right {
+        //     return format!("({} {})", self.operator, right.to_string());
+        // }
+        // format!("({} NOT_IMPLEMENTED)", self.operator,)
+        self.to_string()
+    }
+}
+
+pub struct InfixExpression {
+    pub token: Token,
+    pub left: Option<Box<dyn Expression>>,
+    pub operator: String,
+    pub right: Option<Box<dyn Expression>>,
+}
+
+impl InfixExpression {
+    pub fn new(
+        token: Token,
+        left: Option<Box<dyn Expression>>,
+        right: Option<Box<dyn Expression>>,
+    ) -> Self {
+        match token.token_type {
+            TokenType::Plus
+            | TokenType::Minus
+            | TokenType::Slash
+            | TokenType::Asterisk
+            | TokenType::Eq
+            | TokenType::NotEq
+            | TokenType::LT
+            | TokenType::GT => (),
+            _ => panic!("Not a infix operator"),
         }
-        format!("({} NOT_IMPLEMENTED)", self.operator,)
+        let operator = token.literal.clone();
+        Self {
+            token,
+            left,
+            operator,
+            right,
+        }
+    }
+}
+
+impl Node for InfixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_string(&self) -> String {
+        // format!("{}", self.value)
+        if let Some(right) = &self.right {
+            if let Some(left) = &self.left {
+                return format!(
+                    "({} {} {})",
+                    left.to_string(),
+                    self.operator,
+                    right.to_string()
+                );
+            }
+        }
+        unreachable!()
+    }
+}
+
+impl Expression for InfixExpression {
+    fn expression_node(&self) -> String {
+        self.to_string()
     }
 }

@@ -36,20 +36,47 @@ impl Lexer {
             self.read_char();
         }
         let out: String = self.input[position..self.position].iter().collect();
+        self.reverse_read();
         out.to_uppercase()
     }
     fn read_number(&mut self) -> usize {
-        let position = self.position;
+        let position = self.position.clone();
+        println!("char: {}", self.input[position]);
+        println!("position in string: {:?}", self.input[position..].to_vec());
         while let Some(chr) = self.ch {
+            println!("LOOP CH: {:?}", chr);
+            if self.ch.is_none() {
+                break;
+            }
             if !chr.is_digit(10) {
                 break;
             }
             self.read_char();
         }
-        let literal: String = self.input[position..self.position].iter().collect();
-        literal
-            .parse::<usize>()
-            .expect("could not parse number (should never happen)")
+
+        if let Some(chr) = self.ch {
+            if chr.is_digit(10) {
+                self.read_char();
+            }
+        }
+        println!("end CH: {:?}", self.ch);
+        println!("position: {:?}", position);
+        println!("end position: {:?}", self.position);
+        if self.position == position {
+            let literal = self.input[position].to_string();
+            println!("literal: {}", literal);
+            self.reverse_read();
+            literal
+                .parse::<usize>()
+                .expect("could not parse number (should never happen)")
+        } else {
+            let literal: String = self.input[position..self.position].iter().collect();
+            println!("literal: {}", literal);
+            self.reverse_read();
+            literal
+                .parse::<usize>()
+                .expect("could not parse number (should never happen)")
+        }
     }
 
     fn read_char(&mut self) {
@@ -64,19 +91,30 @@ impl Lexer {
     fn reverse_read(&mut self) {
         self.position -= 1;
         self.read_position -= 1;
-        self.ch = Some(self.input[self.read_position]);
+        if self.read_position >= self.input.len() {
+            self.ch = None;
+        } else {
+            self.ch = Some(self.input[self.read_position]);
+        }
     }
     fn skip_whitespace(&mut self) {
+        println!("skiping whitespace. Starting: {:?}", self.ch);
         while let Some(chr) = self.ch {
+            println!("whitespace CH: {:?}", chr);
             if !chr.is_whitespace() {
                 break;
             }
             self.read_char();
         }
+        // self.reverse_read();
+        println!("skiping whitespace. End: {:?}", self.ch);
     }
 
     pub fn next_token(&mut self) -> Token {
+        println!("NEXT_TOKEN");
+        println!("INITIAL CH {:?}", self.ch);
         self.skip_whitespace();
+        println!("AFTER SKIP CH {:?}", self.ch);
         let token: Token = match self.ch {
             None => Token::new(TokenType::Eof, "".to_string()),
             Some(value) => match value {
@@ -114,8 +152,7 @@ impl Lexer {
                 token => {
                     if token.is_alphabetic() {
                         let literal = self.read_identifier();
-                        println!("LITERAL: {}", literal);
-                        self.reverse_read();
+                        // self.reverse_read();
                         match literal.as_str() {
                             "FN" => Token::new(TokenType::Function, literal),
                             "LET" => Token::new(TokenType::Let, literal),
@@ -127,9 +164,10 @@ impl Lexer {
                             _ => Token::new(TokenType::Ident, literal),
                         }
                     } else if token.is_digit(10) {
+                        println!("TRYING TO PARSE NUMBER");
                         let literal: usize = self.read_number();
                         println!("LITERAL: {}", literal);
-                        self.reverse_read();
+                        // self.reverse_read();
                         Token::new(TokenType::Int, literal.to_string())
                     } else {
                         Token::new(TokenType::Illegal, token.to_string())
@@ -137,7 +175,10 @@ impl Lexer {
                 }
             },
         };
+        println!("TOKEN END CH: {:?}", self.ch);
         self.read_char();
+        println!("TOKEN AFTER MOVE CH: {:?}", self.ch);
+        println!("testl");
         token
     }
 }
