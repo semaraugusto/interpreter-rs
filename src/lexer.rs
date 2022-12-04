@@ -37,14 +37,12 @@ impl Lexer {
         }
         let out: String = self.input[position..self.position].iter().collect();
         self.reverse_read();
-        out.to_uppercase()
+        // out.to_uppercase()
+        out
     }
     fn read_number(&mut self) -> usize {
         let position = self.position.clone();
-        println!("char: {}", self.input[position]);
-        println!("position in string: {:?}", self.input[position..].to_vec());
         while let Some(chr) = self.ch {
-            println!("LOOP CH: {:?}", chr);
             if self.ch.is_none() {
                 break;
             }
@@ -59,19 +57,14 @@ impl Lexer {
                 self.read_char();
             }
         }
-        println!("end CH: {:?}", self.ch);
-        println!("position: {:?}", position);
-        println!("end position: {:?}", self.position);
         if self.position == position {
             let literal = self.input[position].to_string();
-            println!("literal: {}", literal);
             self.reverse_read();
             literal
                 .parse::<usize>()
                 .expect("could not parse number (should never happen)")
         } else {
             let literal: String = self.input[position..self.position].iter().collect();
-            println!("literal: {}", literal);
             self.reverse_read();
             literal
                 .parse::<usize>()
@@ -98,23 +91,17 @@ impl Lexer {
         }
     }
     fn skip_whitespace(&mut self) {
-        println!("skiping whitespace. Starting: {:?}", self.ch);
         while let Some(chr) = self.ch {
-            println!("whitespace CH: {:?}", chr);
             if !chr.is_whitespace() {
                 break;
             }
             self.read_char();
         }
         // self.reverse_read();
-        println!("skiping whitespace. End: {:?}", self.ch);
     }
 
     pub fn next_token(&mut self) -> Token {
-        println!("NEXT_TOKEN");
-        println!("INITIAL CH {:?}", self.ch);
         self.skip_whitespace();
-        println!("AFTER SKIP CH {:?}", self.ch);
         let token: Token = match self.ch {
             None => Token::new(TokenType::Eof, "".to_string()),
             Some(value) => match value {
@@ -154,19 +141,17 @@ impl Lexer {
                         let literal = self.read_identifier();
                         // self.reverse_read();
                         match literal.as_str() {
-                            "FN" => Token::new(TokenType::Function, literal),
-                            "LET" => Token::new(TokenType::Let, literal),
-                            "TRUE" => Token::new(TokenType::True, literal),
-                            "FALSE" => Token::new(TokenType::False, literal),
-                            "IF" => Token::new(TokenType::If, literal),
-                            "ELSE" => Token::new(TokenType::Else, literal),
-                            "RETURN" => Token::new(TokenType::Return, literal),
+                            "fn" => Token::new(TokenType::Function, literal),
+                            "let" => Token::new(TokenType::Let, literal),
+                            "true" => Token::new(TokenType::True, literal),
+                            "false" => Token::new(TokenType::False, literal),
+                            "if" => Token::new(TokenType::If, literal),
+                            "else" => Token::new(TokenType::Else, literal),
+                            "return" => Token::new(TokenType::Return, literal),
                             _ => Token::new(TokenType::Ident, literal),
                         }
                     } else if token.is_digit(10) {
-                        println!("TRYING TO PARSE NUMBER");
                         let literal: usize = self.read_number();
-                        println!("LITERAL: {}", literal);
                         // self.reverse_read();
                         Token::new(TokenType::Int, literal.to_string())
                     } else {
@@ -175,10 +160,7 @@ impl Lexer {
                 }
             },
         };
-        println!("TOKEN END CH: {:?}", self.ch);
         self.read_char();
-        println!("TOKEN AFTER MOVE CH: {:?}", self.ch);
-        println!("testl");
         token
     }
 }
@@ -224,40 +206,40 @@ mod tests {
             ",
         );
         let expected = [
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "FIVE"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "five"),
             (TokenType::Assign, "="),
             (TokenType::Int, "5"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "TEN"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "ten"),
             (TokenType::Assign, "="),
             (TokenType::Int, "10"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "ADD"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "add"),
             (TokenType::Assign, "="),
-            (TokenType::Function, "FN"),
+            (TokenType::Function, "fn"),
             (TokenType::LParen, "("),
-            (TokenType::Ident, "X"),
+            (TokenType::Ident, "x"),
             (TokenType::Comma, ","),
-            (TokenType::Ident, "Y"),
+            (TokenType::Ident, "y"),
             (TokenType::RParen, ")"),
             (TokenType::LBrace, "{"),
-            (TokenType::Ident, "X"),
+            (TokenType::Ident, "x"),
             (TokenType::Plus, "+"),
-            (TokenType::Ident, "Y"),
+            (TokenType::Ident, "y"),
             (TokenType::Semicolon, ";"),
             (TokenType::RBrace, "}"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "RESULT"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "result"),
             (TokenType::Assign, "="),
-            (TokenType::Ident, "ADD"),
+            (TokenType::Ident, "add"),
             (TokenType::LParen, "("),
-            (TokenType::Ident, "FIVE"),
+            (TokenType::Ident, "five"),
             (TokenType::Comma, ","),
-            (TokenType::Ident, "TEN"),
+            (TokenType::Ident, "ten"),
             (TokenType::RParen, ")"),
             (TokenType::Semicolon, ";"),
             (TokenType::Eof, ""),
@@ -287,40 +269,40 @@ mod tests {
     ",
         );
         let expected = [
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "FIVE"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "five"),
             (TokenType::Assign, "="),
             (TokenType::Int, "5"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "TEN"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "ten"),
             (TokenType::Assign, "="),
             (TokenType::Int, "10"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "ADD"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "add"),
             (TokenType::Assign, "="),
-            (TokenType::Function, "FN"),
+            (TokenType::Function, "fn"),
             (TokenType::LParen, "("),
-            (TokenType::Ident, "X"),
+            (TokenType::Ident, "x"),
             (TokenType::Comma, ","),
-            (TokenType::Ident, "Y"),
+            (TokenType::Ident, "y"),
             (TokenType::RParen, ")"),
             (TokenType::LBrace, "{"),
-            (TokenType::Ident, "X"),
+            (TokenType::Ident, "x"),
             (TokenType::Plus, "+"),
-            (TokenType::Ident, "Y"),
+            (TokenType::Ident, "y"),
             (TokenType::Semicolon, ";"),
             (TokenType::RBrace, "}"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "RESULT"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "result"),
             (TokenType::Assign, "="),
-            (TokenType::Ident, "ADD"),
+            (TokenType::Ident, "add"),
             (TokenType::LParen, "("),
-            (TokenType::Ident, "FIVE"),
+            (TokenType::Ident, "five"),
             (TokenType::Comma, ","),
-            (TokenType::Ident, "TEN"),
+            (TokenType::Ident, "ten"),
             (TokenType::RParen, ")"),
             (TokenType::Semicolon, ";"),
             (TokenType::Bang, "!"),
@@ -369,40 +351,40 @@ mod tests {
     10 != 9;",
         );
         let expected = [
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "FIVE"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "five"),
             (TokenType::Assign, "="),
             (TokenType::Int, "5"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "TEN"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "ten"),
             (TokenType::Assign, "="),
             (TokenType::Int, "10"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "ADD"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "add"),
             (TokenType::Assign, "="),
-            (TokenType::Function, "FN"),
+            (TokenType::Function, "fn"),
             (TokenType::LParen, "("),
-            (TokenType::Ident, "X"),
+            (TokenType::Ident, "x"),
             (TokenType::Comma, ","),
-            (TokenType::Ident, "Y"),
+            (TokenType::Ident, "y"),
             (TokenType::RParen, ")"),
             (TokenType::LBrace, "{"),
-            (TokenType::Ident, "X"),
+            (TokenType::Ident, "x"),
             (TokenType::Plus, "+"),
-            (TokenType::Ident, "Y"),
+            (TokenType::Ident, "y"),
             (TokenType::Semicolon, ";"),
             (TokenType::RBrace, "}"),
             (TokenType::Semicolon, ";"),
-            (TokenType::Let, "LET"),
-            (TokenType::Ident, "RESULT"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "result"),
             (TokenType::Assign, "="),
-            (TokenType::Ident, "ADD"),
+            (TokenType::Ident, "add"),
             (TokenType::LParen, "("),
-            (TokenType::Ident, "FIVE"),
+            (TokenType::Ident, "five"),
             (TokenType::Comma, ","),
-            (TokenType::Ident, "TEN"),
+            (TokenType::Ident, "ten"),
             (TokenType::RParen, ")"),
             (TokenType::Semicolon, ";"),
             (TokenType::Bang, "!"),
@@ -417,21 +399,21 @@ mod tests {
             (TokenType::GT, ">"),
             (TokenType::Int, "5"),
             (TokenType::Semicolon, ";"),
-            (TokenType::If, "IF"),
+            (TokenType::If, "if"),
             (TokenType::LParen, "("),
             (TokenType::Int, "5"),
             (TokenType::LT, "<"),
             (TokenType::Int, "10"),
             (TokenType::RParen, ")"),
             (TokenType::LBrace, "{"),
-            (TokenType::Return, "RETURN"),
-            (TokenType::True, "TRUE"),
+            (TokenType::Return, "return"),
+            (TokenType::True, "true"),
             (TokenType::Semicolon, ";"),
             (TokenType::RBrace, "}"),
-            (TokenType::Else, "ELSE"),
+            (TokenType::Else, "else"),
             (TokenType::LBrace, "{"),
-            (TokenType::Return, "RETURN"),
-            (TokenType::False, "FALSE"),
+            (TokenType::Return, "return"),
+            (TokenType::False, "false"),
             (TokenType::Semicolon, ";"),
             (TokenType::RBrace, "}"),
             (TokenType::Int, "10"),
