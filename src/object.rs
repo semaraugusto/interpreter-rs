@@ -3,6 +3,10 @@ use crate::environ::Environment;
 use crate::errors::*;
 use std::fmt;
 
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Object {
     Integer(i64),
@@ -72,6 +76,7 @@ pub struct Function {
 
 fn evaluate(node: ast::Node, mut env: Environment) -> (Object, Environment) {
     println!("Evaluating: {}", node);
+    print_type_of(&node);
     match node {
         ast::Node::Statement(stmt) => match stmt {
             ast::Statement::ReturnStatement { token, expr } => {
@@ -164,7 +169,28 @@ fn evaluate(node: ast::Node, mut env: Environment) -> (Object, Environment) {
                     env,
                 ),
                 // expr => evaluate(ast::Node::Expression(expr)),
-                expr => panic!("Not implemented {}", expr.to_string()),
+                ast::Expression::CallExpression {
+                    token,
+                    function,
+                    arguments,
+                } => {
+                    println!("CallExpression. function: {}", function.to_string());
+                    println!("CallExpression. arguments before: {:?}", arguments);
+                    let (function, env) = evaluate(ast::Node::Expression(*function), env);
+                    if let Object::Error(_) = function {
+                        return (function, env);
+                    }
+                    println!("CallExpression. function after: {:?}", function);
+                    let (arguments, env) = evaluate_expressions(arguments, env);
+                    if arguments.len() == 1 {
+                        if let Object::Error(_) = *arguments[0] {
+                            return (*arguments[0].clone(), env);
+                        }
+                    }
+                    // let value = evaluate_prefix_expression(function, right);
+                    // println!("CallExpression RESULT: value: {:?}", value);
+                    apply_function(function, arguments, env)
+                }
             },
             // _stmt => panic!("Not implemented {}", _stmt.to_string(z)),
         },
@@ -226,8 +252,8 @@ fn evaluate(node: ast::Node, mut env: Environment) -> (Object, Environment) {
                 println!("CallExpression. function after: {:?}", function);
                 let (arguments, env) = evaluate_expressions(arguments, env);
                 if arguments.len() == 1 {
-                    if let Object::Error(_) = arguments[0] {
-                        return (arguments[0].clone(), env);
+                    if let Object::Error(_) = *arguments[0] {
+                        return (*arguments[0].clone(), env);
                     }
                 }
                 // let value = evaluate_prefix_expression(function, right);
@@ -238,22 +264,33 @@ fn evaluate(node: ast::Node, mut env: Environment) -> (Object, Environment) {
                 token,
                 parameters,
                 body,
-            } => {
-                println!("PrefixExpression. token: {}", token);
-                let mut evaluated_parameters = vec![];
-                for param in parameters {
-                    let (param, env) = evaluate(ast::Node::Expression(*param), env.clone());
-                    evaluated_parameters.push(Box::new(param));
-                }
-
-                let function = Object::Function(Function {
-                    parameters: evaluated_parameters,
-                    body: body.clone(),
+            } => (
+                Object::Function(Function {
+                    parameters,
+                    body,
                     env: env.clone(),
-                });
-                (function, env)
+                }),
+                env,
+            ),
+            ast::Expression::IfExpression {
+                token: _,
+                condition,
+                consequence,
+                alternative,
+            } => {
+                let result_condition: Object;
+                (result_condition, env) = evaluate(ast::Node::Expression(*condition), env);
+                if let Object::Error(_) = result_condition {
+                    return (result_condition, env);
+                }
+                if is_truthy(result_condition) {
+                    evaluate(ast::Node::BlockStatement(consequence), env)
+                } else if alternative.is_some() {
+                    evaluate(ast::Node::BlockStatement(alternative.unwrap()), env)
+                } else {
+                    (NULL_OBJ, env)
+                }
             }
-            _stmt => panic!("Not implemented {}", _stmt.to_string()),
         },
         ast::Node::BlockStatement(block_statement) => {
             eval_statements(block_statement.statements, env)
@@ -264,12 +301,13 @@ fn evaluate(node: ast::Node, mut env: Environment) -> (Object, Environment) {
 
 fn apply_function(
     function: Object,
-    arguments: Vec<Box<ast::Expression>>,
+    arguments: Vec<Box<Object>>,
     env: Environment,
 ) -> (Object, Environment) {
     match function {
         Object::Function(func) => {
             let extended_env = extend_function_env(Object::Function(func.clone()), arguments, env);
+            println!("apply_function. extended_env: {:?}", extended_env);
             let (evaluated, env) = eval_statements(func.body.statements, extended_env);
             (evaluated, env)
         }
@@ -277,38 +315,40 @@ fn apply_function(
     }
 }
 
-fn extend_function_env(function: Object, arguments: Vec<Object>, env: Environment) -> Environment {
+fn extend_function_env(
+    function: Object,
+    arguments: Vec<Box<Object>>,
+    env: Environment,
+) -> Environment {
     let mut env = Environment::new_enclosed_env(Some(env));
     match function {
         Object::Function(func) => {
             for (i, param) in func.parameters.iter().enumerate() {
-                match &**param {
-                    ast::Expression::Identifier { token, value } => {
-                        env.set(value.to_string(), arguments[i].clone());
-                    }
-                    _ => panic!("Not implemented"),
-                }
+                println!("extend_function_env. param: {}", param.to_string());
+                env.set(param.to_string(), *arguments[i].clone());
             }
         }
         _ => panic!("Not a function"),
     }
-    // for (i, param) in function.parameters.iter().enumerate() {
-    //     env.set(param.value.clone(), arguments[i].clone());
-    // }
-    todo!()
+    env
 }
+//     // for (i, param) in function.parameters.iter().enumerate() {
+//     //     env.set(param.value.clone(), arguments[i].clone());
+//     // }
+//     // todo!();
+// }
 
 fn evaluate_expressions(
     exps: Vec<Box<ast::Expression>>,
     env: Environment,
-) -> (Vec<Object>, Environment) {
-    let mut objs: Vec<Object> = vec![];
+) -> (Vec<Box<Object>>, Environment) {
+    let mut objs: Vec<Box<Object>> = vec![];
     for exp in exps {
         let (exp, env) = evaluate(ast::Node::Expression(*exp), env.clone());
         if let Object::Error(_) = exp {
-            return (vec![exp], env);
+            return (vec![Box::new(exp)], env);
         }
-        objs.push(exp);
+        objs.push(Box::new(exp));
     }
     (objs, env)
 }
