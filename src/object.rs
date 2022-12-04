@@ -309,9 +309,17 @@ fn apply_function(
             let extended_env = extend_function_env(Object::Function(func.clone()), arguments, env);
             println!("apply_function. extended_env: {:?}", extended_env);
             let (evaluated, env) = eval_statements(func.body.statements, extended_env);
-            (evaluated, env)
+
+            (unwrap_result_object(evaluated), env)
         }
         _ => (Object::Error("not a function".to_string()), env),
+    }
+}
+fn unwrap_result_object(obj: Object) -> Object {
+    if let Object::ReturnValue(value) = obj {
+        *value
+    } else {
+        obj
     }
 }
 
@@ -671,8 +679,22 @@ mod test {
     #[test]
     // #[ignore]
     fn test_function_application() {
-        let inputs = ["let identity = fn(x) { x; }; identity(5);"];
-        let expected = [Object::Integer(5)];
+        let inputs = [
+            "let identity = fn(x) { x; }; identity(5);",
+            "let double = fn(x) { x * 2; }; double(5);",
+            "let add = fn(x, y) { x + y; }; add(5, 5);",
+            "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));",
+            "let identity = fn(x) { return x; }; identity(5);",
+            "fn(x) { x; }(5)",
+        ];
+        let expected = [
+            Object::Integer(5),
+            Object::Integer(10),
+            Object::Integer(10),
+            Object::Integer(20),
+            Object::Integer(5),
+            Object::Integer(5),
+        ];
         for (i, input) in inputs.iter().enumerate() {
             let actual = get_eval(input.to_string());
             // let actual = actual;
