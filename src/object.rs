@@ -705,6 +705,24 @@ mod test {
     }
     #[test]
     // #[ignore]
+    fn test_closures() {
+        let inputs = ["let newAdder = fn(x) {
+  fn(y) { x + y };
+};
+
+let addTwo = newAdder(2);
+addTwo(2);"];
+        let expected = [Object::Integer(4)];
+        for (i, input) in inputs.iter().enumerate() {
+            let actual = get_eval(input.to_string());
+            // let actual = actual;
+            println!("actual {}", actual.inspect());
+            assert_eq!(actual, expected[i]);
+        }
+        // assert_eq!(1, 0);
+    }
+    #[test]
+    // #[ignore]
     fn test_error_handling() {
         let inputs = [
             "5 + true;",
